@@ -1,5 +1,3 @@
-// src/utils/locale.js
-
 const REGION_TO_CURRENCY = {
   NG: "NGN",
   US: "USD",

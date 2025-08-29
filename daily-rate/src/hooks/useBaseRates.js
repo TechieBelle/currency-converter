@@ -1,7 +1,6 @@
 // src/hooks/useBaseRates.js
-import { useCallback, useEffect, useState } from "react";
-
-const ENDPOINT = "https://api.exchangerate.host/latest";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import * as api from "../lib/exchangeClient";
 
 export function useBaseRates(base, symbols = []) {
   const [rates, setRates] = useState({});
@@ -9,25 +8,29 @@ export function useBaseRates(base, symbols = []) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // stable key for dependency array
+  const symbolsKey = useMemo(
+    () => (Array.isArray(symbols) && symbols.length ? symbols.join(",") : ""),
+    [symbols]
+  );
+
   const refresh = useCallback(async () => {
-    if (!base || !symbols.length) return;
+    if (!base || !symbolsKey) return;
     setLoading(true);
     setError("");
     try {
-      const url = `${ENDPOINT}?base=${encodeURIComponent(
-        base
-      )}&symbols=${symbols.join(",")}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Bad response");
-      const data = await res.json();
-      setRates(data?.rates || {});
-      setDate(data?.date || new Date().toISOString().slice(0, 10));
+      const { rates: allRates, date } = await api.latest(base);
+      const picked = {};
+      for (const s of symbols)
+        if (allRates?.[s] != null) picked[s] = allRates[s];
+      setRates(picked);
+      setDate(date);
     } catch {
       setError("Failed to load rates.");
     } finally {
       setLoading(false);
     }
-  }, [base, symbols.join(",")]);
+  }, [base, symbolsKey]);
 
   useEffect(() => {
     refresh();
