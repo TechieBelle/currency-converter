@@ -1,7 +1,7 @@
-// src/App.jsx
-import { useState, useMemo } from "react";
 import ConverterCard from "./components/ConverterCard";
 import LiveRatesPanel from "./components/LiveRatesPanel";
+import { useSymbols } from "./hooks/useSymbols";
+import { useState, useMemo } from "react";
 import { useBaseRates } from "./hooks/useBaseRates";
 import { usePairRate } from "./hooks/usePairRate";
 import {
@@ -10,23 +10,11 @@ import {
   topSymbolsForRegion,
 } from "./utils/locale";
 
-// Dropdown options (you can swap to a dynamic hook later if you want)
-const currencies = [
-  "NGN",
-  "USD",
-  "EUR",
-  "GBP",
-  "CAD",
-  "JPY",
-  "AED",
-  "CNY",
-  "INR",
-];
-
 export default function App() {
-  // Default "From" to user's local currency (e.g., "NG" -> "NGN")
+  const { codes: currencies } = useSymbols();
   const region = detectRegion();
   const userCurrency = defaultCurrencyForRegion(region);
+console.log("currencies length =", currencies.length, currencies.slice(0, 12));
 
   // Converter state (UI remains the same)
   const [from, setFrom] = useState(userCurrency || "NGN");
