@@ -1,11 +1,13 @@
+// src/components/CurrencySelector.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 export default function CurrencySelector({
   label,
   value,
   onChange,
-  options = [],
-  popular = [], // <- optional list to feature at the top
+  options = [], // array of codes
+  meta = {}, // { CODE: { label, flag } }
   disabled = false,
 }) {
   const [open, setOpen] = useState(false);
@@ -13,24 +15,23 @@ export default function CurrencySelector({
   const wrapRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Normalize + de-dup
+  // Normalize + sort
   const allCodes = useMemo(
     () => [...new Set(options.map((c) => (c || "").toUpperCase()))].sort(),
     [options]
   );
-  const popularSet = useMemo(() => {
-    const norm = popular.map((c) => (c || "").toUpperCase());
-    return new Set(norm.filter((c) => allCodes.includes(c)));
-  }, [popular, allCodes]);
 
-  // Filtered list (by query)
+  // Filter by code or label
   const filtered = useMemo(() => {
     const q = query.trim().toUpperCase();
     if (!q) return allCodes;
-    return allCodes.filter((c) => c.includes(q));
-  }, [query, allCodes]);
+    return allCodes.filter((c) => {
+      const name = meta[c]?.label || "";
+      return c.includes(q) || name.toUpperCase().includes(q);
+    });
+  }, [query, allCodes, meta]);
 
-  // Click outside -> close
+  // Close on click outside
   useEffect(() => {
     function onDoc(e) {
       if (!wrapRef.current) return;
@@ -40,15 +41,22 @@ export default function CurrencySelector({
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  // Keep query synced with current value when closed
+  // Reset query when closing
   useEffect(() => {
     if (!open) setQuery("");
   }, [open]);
 
+  const displayValue = (() => {
+    const m = meta[value];
+    if (!m) return value || "";
+    return `${m.flag || ""} ${value} ${m.label || ""}`.trim();
+  })();
+
   function pick(code) {
     onChange(code);
     setOpen(false);
-   setQuery("");
+    setQuery("");
+    // Do not refocus to avoid reopening
   }
 
   return (
@@ -59,71 +67,74 @@ export default function CurrencySelector({
         </label>
       )}
 
-      {/* Trigger / input (keeps your form styles) */}
       <div className="relative">
         <input
           ref={inputRef}
-          value={open ? query : value}
-          onChange={(e) => setQuery(e.target.value.toUpperCase())}
+          value={open ? query : displayValue}
+          onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           disabled={disabled}
-          placeholder="Search (e.g. USD)"
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:outline-none"
+          placeholder="Search currency"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+            if (e.key === "Enter" && filtered.length) {
+              e.preventDefault();
+              pick(filtered[0]);
+            }
+          }}
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 pr-9 py-2 text-slate-800 focus:outline-none"
         />
 
-        {/* Dropdown panel */}
-        {open && !disabled && (
-          <div
-            className="absolute z-20 mt-1 w-full rounded-lg border border-slate-300 bg-white shadow-xl"
-            role="listbox"
-          >
-            {/* Popular group (only when no query and there are items) */}
-            {!query && popularSet.size > 0 && (
-              <div className="max-h-56 overflow-auto py-1">
-                <div className="px-3 py-1 text-xs font-semibold text-slate-500">
-                  Popular
-                </div>
-                {Array.from(popularSet).map((code) => (
-                  <button
-                    key={`pop-${code}`}
-                    onClick={() => pick(code)}
-                    className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-slate-100 ${
-                      code === value ? "bg-slate-50 font-semibold" : ""
-                    }`}
-                    type="button"
-                  >
-                    <span className="text-slate-800">{code}</span>
-                    {code === value && (
-                      <span className="text-xs text-blue-600">selected</span>
-                    )}
-                  </button>
-                ))}
-                <div className="my-1 border-t border-slate-200" />
-              </div>
-            )}
+        {/* Chevron */}
+        <button
+          type="button"
+          disabled={disabled}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            if (!open) setOpen(true);
+            inputRef.current?.focus();
+          }}
+          aria-label="Open currency list"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700 disabled:opacity-50"
+        >
+          <ChevronDownIcon
+            className={`h-4 w-4 transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+            aria-hidden
+          />
+        </button>
 
-            {/* All currencies (filtered) */}
+        {/* Dropdown panel (no Popular section) */}
+        {open && !disabled && (
+          <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-300 bg-white shadow-xl">
             <div className="max-h-64 overflow-auto py-1">
               {filtered.length === 0 ? (
                 <div className="px-3 py-3 text-sm text-slate-500">
                   No results
                 </div>
               ) : (
-                filtered.map((code) => (
-                  <button
-                    key={code}
-                    onClick={() => pick(code)}
-                    className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-slate-100 ${
-                      code === value ? "bg-slate-50 font-semibold" : ""
-                    }`}
-                    type="button"
-                  >
-                    <span className="text-slate-800">{code}</span>
-                    {code === value && (
-                      <span className="text-xs text-blue-600">selected</span>
-                    )}
-                  </button>
-                ))
+                filtered.map((code) => {
+                  const m = meta[code] || {};
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        pick(code);
+                      }} // close immediately
+                      onClick={() => pick(code)} // keyboard support
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-slate-100 ${
+                        code === value ? "bg-slate-50 font-semibold" : ""
+                      }`}
+                    >
+                      <span className="text-lg">{m.flag || ""}</span>
+                      <span className="text-slate-800">{code}</span>
+                      <span className="text-slate-500">{m.label || ""}</span>
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>

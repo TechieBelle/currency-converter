@@ -1,71 +1,175 @@
 // src/components/LiveRatesPanel.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import CurrencySelector from "./CurrencySelector";
+
 export default function LiveRatesPanel({
   base,
-  symbols = [],
-  rates = {},
+  symbols = [], // 5 target codes to show on the right
+  rates = {}, // map: target -> rate (1 base -> target)
   date = "",
   loading = false,
   error = "",
-  onRefresh,
-  highlightCode,
+  onRefresh = () => {},
+  onBaseChange = null, // (code) => void
+  onTargetsChange = null, // (arr[5]) => void
+  currencies = [], // all codes (for CurrencySelector)
+  meta = {}, // { CODE: { label, flag } }
+  popular = [], // if you removed Popular, you can delete this prop
+  highlightCode = "",
 }) {
-  const fmt = (n) => (Number.isFinite(n) ? n.toLocaleString() : "—");
-  const highlight = highlightCode ? rates?.[highlightCode] : null;
+  // panel amount
+  const [amount, setAmount] = useState("1500");
+
+  // ✅ single source of truth for widths (picked from your snippet)
+  const SELECT_W = "w-3/4 md:w-[100px]"; // or "w-full md:w-[100px]"
+  const AMOUNT_W = "w-3/4 md:w-[200px]"; // or "w-full md:w-[200px]"
+
+  const fmt2 = useMemo(
+    () =>
+      new Intl.NumberFormat(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    []
+  );
+
+  // ensure 5 targets and none equals base
+  const safeTargets = useMemo(() => {
+    const fallback = ["USD", "EUR", "GBP", "CAD", "JPY"];
+    const src = (symbols && symbols.length ? symbols : fallback).slice(0, 5);
+    return src.map((c) => (c === base ? "USD" : c));
+  }, [symbols, base]);
+
+  const [localTargets, setLocalTargets] = useState(safeTargets);
+  useEffect(() => {
+    setLocalTargets(safeTargets);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeTargets.join(","), base]);
+
+  function changeTarget(i, code) {
+    if (!code || code === base) return;
+    const next = [...localTargets];
+    next[i] = code;
+    setLocalTargets(next);
+    onTargetsChange?.(next);
+  }
+
+  const amt = Number(String(amount).replace(/,/g, "")) || 0;
 
   return (
     <section
       className="
-        rounded-2xl bg-emerald-900 p-6 text-white shadow
-        w-full
-        md:w-[calc(100vw-40px)] md:max-w-none
+        md:rounded-2xl bg-emerald-900 text-white shadow
+        w-full md:w-[calc(100vw-140px)] md:max-w-none
         md:relative md:left-1/2 md:-translate-x-1/2
-        my-[80px]
+        md:mt-[120px] md:mb-[100px]
+        p-4 md:p-6 
       "
     >
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Daily Rates</h2>
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            className="text-xs rounded bg-emerald-700 px-2 py-1 hover:bg-emerald-600 transition focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            Refresh
-          </button>
-        )}
-      </div>
+      <h2 className="text-center text-xl md:text-2xl font-semibold md:mb-12">
+        Live Exchange Rates
+      </h2>
 
-      <p className="mt-1 text-emerald-100 text-sm">Updated: {date || "—"}</p>
+      {/* Center items on small screens to match ConverterCard vibe */}
+      <div className="mt-5 grid gap-6 md:grid-cols-2 place-items-center md:place-items-start">
+        {/* LEFT: Base currency + amount */}
+        <div className="w-full">
+          <label className="block text-emerald-100 text-sm mb-2">
+            Base currency :
+          </label>
 
-      {highlightCode && (
-        <div className="mt-4 rounded-lg bg-emerald-800/60 p-4">
-          <p className="text-base">
-            <span className="font-medium">1 {base}</span> ={" "}
-            <span className="font-semibold">{fmt(highlight)}</span>{" "}
-            {highlightCode}
-          </p>
+          {/* ⬇️ same width as your base selector */}
+          <div className={`${SELECT_W} mx-auto md:mx-0`}>
+            <CurrencySelector
+              label=""
+              value={base}
+              onChange={(c) => onBaseChange?.(c)}
+              options={currencies}
+              meta={meta}
+              popular={popular} // remove this line if you dropped Popular
+              disabled={loading}
+            />
+          </div>
+
+          {/* ⬇️ match the input width to your base amount */}
+          <div className="mt-3">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount"
+              className={`${AMOUNT_W} block mx-auto md:mx-0 rounded-md md:text-2xl bg-white px-6 py-4 text-slate-800 text-center outline-none`}
+            />
+          </div>
         </div>
-      )}
 
-      <ul className="mt-4 space-y-2">
-        {symbols.map((code) => (
-          <li
-            key={code}
-            className="flex items-center justify-between rounded-lg bg-emerald-800 px-4 py-2"
-          >
-            <span className="text-emerald-100">
-              1 {base} → {code}
-            </span>
-            <span className="font-semibold">{fmt(rates?.[code])}</span>
-          </li>
-        ))}
-      </ul>
+        {/* RIGHT: Five target rows (selector + converted amount) */}
+        <div className="w-full">
+          <div className="text-emerald-100 text-sm mb-3 mt-4 text-center md:text-left">
+            Rates :
+          </div>
 
-      {loading && <p className="mt-3 text-emerald-200 text-sm">Loading…</p>}
-      {error && (
-        <p className="mt-3 text-rose-200 text-sm" role="alert">
-          {error}
-        </p>
-      )}
+          <div className="space-y-3">
+            {localTargets.map((code, idx) => {
+              const r = rates?.[code];
+              const converted = Number.isFinite(r) ? r * amt : null;
+              const highlight = highlightCode === code;
+
+              return (
+                <div
+                  key={`${code}-${idx}`}
+                  className={`flex flex-col items-center sm:flex-row sm:items-center gap-2 sm:gap-3 ${
+                    highlight ? "ring-2 ring-white/60 rounded-md p-1" : ""
+                  }`}
+                >
+                  {/* ⬇️ Rate selector matches Base selector width */}
+                  <div className={`${SELECT_W} mx-auto sm:mx-0`}>
+                    <CurrencySelector
+                      label=""
+                      value={code}
+                      onChange={(c) => changeTarget(idx, c)}
+                      options={currencies}
+                      meta={meta}
+                      popular={popular} // remove if Popular is gone
+                      disabled={loading}
+                    />
+                  </div>
+
+                  {/* ⬇️ Converted amount matches Base amount width */}
+                  <input
+                    readOnly
+                    className={`${AMOUNT_W} mx-auto sm:mx-0 rounded-md bg-white px-3 py-2 text-right text-slate-800`}
+                    value={
+                      Number.isFinite(converted)
+                        ? fmt2.format(converted)
+                        : "0.00"
+                    }
+                  />
+                </div>
+              );
+            })}
+
+            {loading && (
+              <>
+                <div className="h-10 rounded-md bg-emerald-800/60 animate-pulse" />
+                <div className="h-10 rounded-md bg-emerald-800/60 animate-pulse" />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Panel footer: date + refresh at the bottom */}
+      <div className="mt-6 md:mt-8 flex flex-col items-center gap-2 md:flex-row md:justify-end">
+        <button
+          onClick={onRefresh}
+          disabled={loading}
+          className="text-sm rounded bg-emerald-700 px-3 py-1.5 hover:bg-emerald-600 transition focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer md:ml-3"
+        >
+          Refresh
+        </button>
+        <p className="text-emerald-100 text-xs">Updated: {date || "—"}</p>
+      </div>
     </section>
   );
 }

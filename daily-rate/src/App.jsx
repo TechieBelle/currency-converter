@@ -1,7 +1,8 @@
+// src/App.jsx
+import { useState, useMemo, useEffect } from "react";
 import ConverterCard from "./components/ConverterCard";
 import LiveRatesPanel from "./components/LiveRatesPanel";
 import { useSymbols } from "./hooks/useSymbols";
-import { useState, useMemo } from "react";
 import { useBaseRates } from "./hooks/useBaseRates";
 import { usePairRate } from "./hooks/usePairRate";
 import {
@@ -11,17 +12,23 @@ import {
 } from "./utils/locale";
 
 export default function App() {
-  const { codes: currencies } = useSymbols();
+  // full list + labels/flags for dropdowns
+  const {
+    codes: currencies,
+    meta,
+    loading: symbolsLoading,
+    error: symbolsError,
+  } = useSymbols();
+
   const region = detectRegion();
   const userCurrency = defaultCurrencyForRegion(region);
-console.log("currencies length =", currencies.length, currencies.slice(0, 12));
 
-  // Converter state (UI remains the same)
+  // converter state
   const [from, setFrom] = useState(userCurrency || "NGN");
   const [to, setTo] = useState("EUR");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState("1500");
 
-  // --- LIVE rate for the converter pair (1 {from} -> {to}) ---
+  // live pair rate
   const {
     rate: pairRate,
     date: pairDate,
@@ -30,29 +37,32 @@ console.log("currencies length =", currencies.length, currencies.slice(0, 12));
     refresh: refreshPair,
   } = usePairRate(from, to);
 
-  // --- LIVE daily panel: top 5 for user's region (exclude current base) ---
-  const symbols = useMemo(
-    () => topSymbolsForRegion(region, from),
-    [region, from]
-  );
-  const { rates, date, loading, error, refresh } = useBaseRates(from, symbols);
+  // ✅ keep 5 editable targets for the panel
+  const [panelTargets, setPanelTargets] = useState(() => topSymbolsForRegion(region, from));
+ const popularList = useMemo(() => topSymbolsForRegion(region, from), [region, from]);
 
-  // Handlers
+  // when region/base changes, refresh the defaults
+  useEffect(() => {
+    setPanelTargets(topSymbolsForRegion(region, from));
+  }, [region, from]);
+
+  // daily base->targets rates
+  const { rates, date, loading, error, refresh } = useBaseRates(
+    from,
+    panelTargets
+  );
+
   function handleSwap() {
-    const prevFrom = from;
-    const prevTo = to;
-    setFrom(prevTo);
-    setTo(prevFrom);
+    setFrom(to);
+    setTo(from);
   }
 
   function handleConvert() {
-    // Manual refresh (auto-refresh already happens when from/to change)
     refreshPair();
   }
 
   return (
     <div className="min-h-full">
-      {/* HERO */}
       <header className="bg-blue-900 px-6 py-10 text-white md:px-12">
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
           <div>
@@ -64,16 +74,16 @@ console.log("currencies length =", currencies.length, currencies.slice(0, 12));
             </p>
           </div>
 
-          {/* Converter Card (LIVE pair rate) */}
           <ConverterCard
             from={from}
             to={to}
             amount={amount}
             currencies={currencies}
-            rate={pairRate} // live
-            date={pairDate} // last updated
-            loading={pairLoading}
-            error={pairError || ""}
+            meta={meta}
+            rate={pairRate}
+            date={pairDate}
+            loading={pairLoading || symbolsLoading}
+            error={pairError || symbolsError || ""}
             onFromChange={setFrom}
             onToChange={setTo}
             onAmountChange={setAmount}
@@ -83,17 +93,20 @@ console.log("currencies length =", currencies.length, currencies.slice(0, 12));
         </div>
       </header>
 
-      {/* Live, location-aware daily panel (styles live inside the component) */}
       <LiveRatesPanel
         base={from}
-        symbols={symbols}
+        symbols={panelTargets} // ✅ the 5 targets
         rates={rates}
         date={date}
         loading={loading}
         error={error}
         onRefresh={refresh}
-        // Highlight user's local row (or first symbol if base equals local)
-        highlightCode={userCurrency !== from ? userCurrency : symbols[0]}
+        onBaseChange={setFrom} // ✅ base dropdown handler
+        onTargetsChange={setPanelTargets} // ✅ per-row dropdown handler
+        currencies={currencies} // ✅ options for dropdowns
+        meta={meta} // ✅ labels + flags
+        
+        
       />
 
       <footer className="bg-blue-900 px-6 py-6 text-center text-blue-100 md:px-12">
