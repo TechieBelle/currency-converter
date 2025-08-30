@@ -19,7 +19,7 @@ console.log("currencies length =", currencies.length, currencies.slice(0, 12));
   // Converter state (UI remains the same)
   const [from, setFrom] = useState(userCurrency || "NGN");
   const [to, setTo] = useState("EUR");
-  const [amount, setAmount] = useState("1500");
+  const [amount, setAmount] = useState("");
 
   // --- LIVE rate for the converter pair (1 {from} -> {to}) ---
   const {

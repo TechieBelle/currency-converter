@@ -48,8 +48,7 @@ export default function CurrencySelector({
   function pick(code) {
     onChange(code);
     setOpen(false);
-    // focus back to input for accessibility
-    inputRef.current?.focus();
+   setQuery("");
   }
 
   return (
