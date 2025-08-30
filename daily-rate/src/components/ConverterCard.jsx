@@ -19,6 +19,7 @@ export default function ConverterCard({
   onConvert,
 }) {
   const amountNumber = Number(amount) || 0;
+  const isValidAmount = Number.isFinite(amountNumber) && amountNumber > 0;
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-xl md:translate-y-[96px] md:min-h-[480px]">
@@ -59,24 +60,27 @@ export default function ConverterCard({
           label="Enter Amount"
           value={amount}
           onChange={onAmountChange}
+          placeholder="Type an amount…"
         />
 
         <button
           onClick={onConvert}
-          disabled={loading}
-          className="rounded-lg bg-blue-700 px-4 py-2 font-medium text-white transition-transform duration-200 ease-out hover:scale-105 active:scale-95 focus:outline-none cursor-pointer md:mt-8"
-          aria-label="Swap currencies"
+          disabled={loading || !isValidAmount}
+          className="rounded-lg bg-blue-700 px-4 py-2 font-medium text-white transition-transform duration-200 ease-out hover:scale-105 active:scale-95 focus:outline-none cursor-pointer md:mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Loading…" : "Convert"}
         </button>
 
-        <ConversionResult
-          amount={amountNumber}
-          from={from}
-          to={to}
-          rate={rate}
-          date={date}
-        />
+        {/* 🔹 Only show result when amount is valid */}
+        {isValidAmount && (
+          <ConversionResult
+            amount={amountNumber}
+            from={from}
+            to={to}
+            rate={rate}
+            date={date}
+          />
+        )}
 
         {error && (
           <p className="text-sm text-red-600" role="alert">

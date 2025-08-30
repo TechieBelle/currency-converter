@@ -1,35 +1,37 @@
 import Logo from "./assets/logowhite.svg?react";
 import { useState, useEffect } from "react";
+
 import ConverterCard from "./components/ConverterCard";
 import LiveRatesPanel from "./components/LiveRatesPanel";
+
 import { useSymbols } from "./hooks/useSymbols";
 import { useBaseRates } from "./hooks/useBaseRates";
 import { usePairRate } from "./hooks/usePairRate";
+
 import {
   detectRegion,
   defaultCurrencyForRegion,
   topSymbolsForRegion,
 } from "./utils/locale";
 
-
 export default function App() {
-  // full list + labels/flags for dropdowns
+  // Full currency list + metadata (labels/flags) for dropdowns
   const {
-    codes: currencies,
-    meta,
+    codes: currencies = [],
+    meta = {},
     loading: symbolsLoading,
     error: symbolsError,
   } = useSymbols();
 
   const region = detectRegion();
-  const userCurrency = defaultCurrencyForRegion(region);
+  const userCurrency = defaultCurrencyForRegion(region) || "NGN";
 
-  // converter state
-  const [from, setFrom] = useState(userCurrency || "NGN");
+  // Converter state (single source of truth)
+  const [from, setFrom] = useState(userCurrency);
   const [to, setTo] = useState("EUR");
-  const [amount, setAmount] = useState("1500");
+  const [amount, setAmount] = useState("");   // 🔹 empty default amount
 
-  // live pair rate
+  // Live pair rate (1 {from} -> {to})
   const {
     rate: pairRate,
     date: pairDate,
@@ -38,22 +40,22 @@ export default function App() {
     refresh: refreshPair,
   } = usePairRate(from, to);
 
-  // ✅ keep 5 editable targets for the panel
+  // Five editable targets for the live panel
   const [panelTargets, setPanelTargets] = useState(() =>
     topSymbolsForRegion(region, from)
   );
-
-
-  // when region/base changes, refresh the defaults
   useEffect(() => {
     setPanelTargets(topSymbolsForRegion(region, from));
   }, [region, from]);
 
-  // daily base->targets rates
-  const { rates, date, loading, error, refresh } = useBaseRates(
-    from,
-    panelTargets
-  );
+  // Daily base -> targets rates (for the panel)
+  const {
+    rates,
+    date,
+    loading,
+    error,
+    refresh,
+  } = useBaseRates(from, panelTargets);
 
   function handleSwap() {
     setFrom(to);
@@ -61,13 +63,26 @@ export default function App() {
   }
 
   function handleConvert() {
+    // Pair hook already auto-fetches on from/to change; this is a manual refresh.
     refreshPair();
   }
 
+  // 🔹 Centralized error message handling
+  const errorMsg =
+    symbolsError
+      ? "Failed to load currencies."
+      : pairError
+      ? "Failed to fetch conversion rate."
+      : error
+      ? "Failed to load daily rates."
+      : "";
+
   return (
     <div className="min-h-screen flex flex-col">
-          <header className="bg-blue-900 px-6 py-10 text-white md:px-12">
-        <Logo className="h-10 w-auto md:h-12 text-white" />
+      <header className="bg-blue-900 px-6 py-10 text-white md:px-12">
+        <div className="mb-4">
+          <Logo className="h-10 w-auto md:h-12 text-white [&_*]:fill-current [&_*]:stroke-current" />
+        </div>
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
           <div>
             <h1 className="text-3xl font-semibold leading-tight md:text-5xl">
@@ -87,7 +102,7 @@ export default function App() {
             rate={pairRate}
             date={pairDate}
             loading={pairLoading || symbolsLoading}
-            error={pairError || symbolsError || ""}
+            error={errorMsg}
             onFromChange={setFrom}
             onToChange={setTo}
             onAmountChange={setAmount}
@@ -96,21 +111,25 @@ export default function App() {
           />
         </div>
       </header>
+
       <main className="flex-1">
         <LiveRatesPanel
           base={from}
-          symbols={panelTargets} // ✅ the 5 targets
+          symbols={panelTargets}
           rates={rates}
           date={date}
           loading={loading}
-          error={error}
+          error={errorMsg}
           onRefresh={refresh}
-          onBaseChange={setFrom} // ✅ base dropdown handler
-          onTargetsChange={setPanelTargets} // ✅ per-row dropdown handler
-          currencies={currencies} // ✅ options for dropdowns
-          meta={meta} // ✅ labels + flags
+          onBaseChange={setFrom}
+          onTargetsChange={setPanelTargets}
+          currencies={currencies}
+          meta={meta}
+          amount={amount}
+          onAmountChange={setAmount}
         />
       </main>
+
       <footer className="bg-blue-900 px-6 py-6 text-center text-blue-100 md:px-12">
         &copy; Folashade {new Date().getFullYear()}
       </footer>
