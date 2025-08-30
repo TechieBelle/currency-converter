@@ -1,5 +1,5 @@
-// src/App.jsx
-import { useState, useMemo, useEffect } from "react";
+import Logo from "./assets/logowhite.svg?react";
+import { useState, useEffect } from "react";
 import ConverterCard from "./components/ConverterCard";
 import LiveRatesPanel from "./components/LiveRatesPanel";
 import { useSymbols } from "./hooks/useSymbols";
@@ -10,6 +10,7 @@ import {
   defaultCurrencyForRegion,
   topSymbolsForRegion,
 } from "./utils/locale";
+
 
 export default function App() {
   // full list + labels/flags for dropdowns
@@ -38,8 +39,10 @@ export default function App() {
   } = usePairRate(from, to);
 
   // ✅ keep 5 editable targets for the panel
-  const [panelTargets, setPanelTargets] = useState(() => topSymbolsForRegion(region, from));
- const popularList = useMemo(() => topSymbolsForRegion(region, from), [region, from]);
+  const [panelTargets, setPanelTargets] = useState(() =>
+    topSymbolsForRegion(region, from)
+  );
+
 
   // when region/base changes, refresh the defaults
   useEffect(() => {
@@ -63,7 +66,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-blue-900 px-6 py-10 text-white md:px-12">
+          <header className="bg-blue-900 px-6 py-10 text-white md:px-12">
+        <Logo className="h-10 w-auto md:h-12 text-white" />
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
           <div>
             <h1 className="text-3xl font-semibold leading-tight md:text-5xl">
