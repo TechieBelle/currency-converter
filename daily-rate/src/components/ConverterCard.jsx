@@ -79,6 +79,7 @@ export default function ConverterCard({
             to={to}
             rate={rate}
             date={date}
+            error={error}
           />
         )}
 

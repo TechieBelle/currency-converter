@@ -47,16 +47,16 @@ export default function CurrencySelector({
   }, [open]);
 
   const displayValue = (() => {
+    if (open) return query; // show query when dropdown open
     const m = meta[value];
     if (!m) return value || "";
-    return `${m.flag || ""} ${value} ${m.label || ""}`.trim();
+    return `${m.flag || ""} ${value} — ${m.label || ""}`.trim();
   })();
 
   function pick(code) {
     onChange(code);
     setOpen(false);
     setQuery("");
-    // Do not refocus to avoid reopening
   }
 
   return (
@@ -70,7 +70,7 @@ export default function CurrencySelector({
       <div className="relative">
         <input
           ref={inputRef}
-          value={open ? query : displayValue}
+          value={displayValue}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           disabled={disabled}
@@ -85,16 +85,15 @@ export default function CurrencySelector({
           className="w-full rounded-lg border border-slate-300 bg-white px-3 pr-9 py-2 text-slate-800 focus:outline-none"
         />
 
-        {/* Chevron */}
+        {/* Chevron toggle */}
         <button
           type="button"
           disabled={disabled}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            if (!open) setOpen(true);
+          onClick={() => {
+            setOpen((o) => !o);
             inputRef.current?.focus();
           }}
-          aria-label="Open currency list"
+          aria-label="Toggle currency list"
           className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700 disabled:opacity-50"
         >
           <ChevronDownIcon
@@ -105,11 +104,15 @@ export default function CurrencySelector({
           />
         </button>
 
-        {/* Dropdown panel (no Popular section) */}
+        {/* Dropdown */}
         {open && !disabled && (
           <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-300 bg-white shadow-xl">
-            <div className="max-h-64 overflow-auto py-1">
-              {filtered.length === 0 ? (
+            <div className="max-h-80 overflow-auto py-1">
+              {options.length === 0 ? (
+                <div className="px-3 py-3 text-sm text-slate-500">
+                  Loading currencies...
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="px-3 py-3 text-sm text-slate-500">
                   No results
                 </div>
@@ -120,13 +123,11 @@ export default function CurrencySelector({
                     <button
                       key={code}
                       type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        pick(code);
-                      }} // close immediately
-                      onClick={() => pick(code)} // keyboard support
+                      onClick={() => pick(code)}
                       className={`flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-slate-100 ${
-                        code === value ? "bg-slate-50 font-semibold" : ""
+                        code === value
+                          ? "bg-blue-50 text-blue-700 font-semibold"
+                          : ""
                       }`}
                     >
                       <span className="text-lg">{m.flag || ""}</span>
