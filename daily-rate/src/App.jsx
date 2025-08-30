@@ -62,7 +62,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-full">
+    <div className="min-h-screen flex flex-col">
       <header className="bg-blue-900 px-6 py-10 text-white md:px-12">
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
           <div>
@@ -92,25 +92,23 @@ export default function App() {
           />
         </div>
       </header>
-
-      <LiveRatesPanel
-        base={from}
-        symbols={panelTargets} // ✅ the 5 targets
-        rates={rates}
-        date={date}
-        loading={loading}
-        error={error}
-        onRefresh={refresh}
-        onBaseChange={setFrom} // ✅ base dropdown handler
-        onTargetsChange={setPanelTargets} // ✅ per-row dropdown handler
-        currencies={currencies} // ✅ options for dropdowns
-        meta={meta} // ✅ labels + flags
-        
-        
-      />
-
+      <main className="flex-1">
+        <LiveRatesPanel
+          base={from}
+          symbols={panelTargets} // ✅ the 5 targets
+          rates={rates}
+          date={date}
+          loading={loading}
+          error={error}
+          onRefresh={refresh}
+          onBaseChange={setFrom} // ✅ base dropdown handler
+          onTargetsChange={setPanelTargets} // ✅ per-row dropdown handler
+          currencies={currencies} // ✅ options for dropdowns
+          meta={meta} // ✅ labels + flags
+        />
+      </main>
       <footer className="bg-blue-900 px-6 py-6 text-center text-blue-100 md:px-12">
-        © Folashade {new Date().getFullYear()}
+        &copy; Folashade {new Date().getFullYear()}
       </footer>
     </div>
   );

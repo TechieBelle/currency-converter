@@ -63,7 +63,7 @@ export default function LiveRatesPanel({
         w-full md:w-[calc(100vw-140px)] md:max-w-none
         md:relative md:left-1/2 md:-translate-x-1/2
         md:mt-[120px] md:mb-[100px]
-        p-4 md:p-6 
+        p-6 md:p-8 
       "
     >
       <h2 className="text-center text-xl md:text-2xl font-semibold md:mb-12">
