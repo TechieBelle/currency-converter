@@ -1,17 +1,8 @@
-// src/hooks/useSymbols.js
 import { useEffect, useState } from "react";
-import * as api from "../lib/exchangeClient"; // uses your .env if set
+import * as api from "../lib/exchangeClient";
 
 export function useSymbols() {
-  // Short fallback while loading
-  const [codes, setCodes] = useState([
-    "NGN",
-    "USD",
-    "EUR",
-    "GBP",
-    "CAD",
-    "JPY",
-  ]);
+  const [codes, setCodes] = useState(["USD", "EUR", "GBP", "NGN", "JPY"]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -22,9 +13,7 @@ export function useSymbols() {
       setLoading(true);
       setError("");
       try {
-        // 1) Preferred: provider-aware call (EXR if key, else host)
-        let list = await api.symbols(); // -> ["USD","EUR", ...]
-        // 2) Safety: if provider returned too few, try host directly
+        let list = await api.symbols();
         if (!Array.isArray(list) || list.length < 10) {
           const res = await fetch("https://api.exchangerate.host/symbols");
           if (!res.ok) throw new Error("host symbols failed");
@@ -34,10 +23,8 @@ export function useSymbols() {
         if (!cancelled && list?.length) {
           setCodes([...new Set(list)].sort());
         }
-      } catch (e) {
-        if (!cancelled)
-          setError("Failed to load currency list (using fallback).");
-        console.warn("symbols fetch failed:", e);
+      } catch {
+        if (!cancelled) setError("Failed to load currencies.");
       } finally {
         if (!cancelled) setLoading(false);
       }

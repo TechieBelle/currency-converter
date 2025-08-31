@@ -1,13 +1,9 @@
-export default function ConversionResult({
-  amount,
-  from,
-  to,
-  rate,
-  date,
-  error,
-}) {
+export default function ConversionResult({ amount, from, to, rate, date }) {
   const valid =
-    Number.isFinite(amount) && amount > 0 && typeof rate === "number";
+    Number.isFinite(amount) &&
+    amount > 0 &&
+    typeof rate === "number" &&
+    !isNaN(rate);
 
   const fmt = new Intl.NumberFormat(undefined, {
     minimumFractionDigits: 2,
@@ -20,12 +16,11 @@ export default function ConversionResult({
   });
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:mt-10">
-      {error ? (
-        <p className="text-sm text-red-600" role="alert">
-          {error}
-        </p>
-      ) : !valid ? (
+    <div
+      className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:mt-10"
+      aria-live="polite"
+    >
+      {!valid ? (
         <p className="text-slate-500 text-sm">
           Enter a valid amount to convert.
         </p>

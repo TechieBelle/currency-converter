@@ -1,8 +1,6 @@
-// src/hooks/usePairRate.js
 import { useCallback, useEffect, useState } from "react";
 import * as api from "../lib/exchangeClient";
 
-/** Fetch live rate for 1 {from} -> {to}. Uses EXR key if provided, else falls back. */
 export function usePairRate(from, to) {
   const [rate, setRate] = useState(null);
   const [date, setDate] = useState("");
@@ -10,20 +8,20 @@ export function usePairRate(from, to) {
   const [error, setError] = useState("");
 
   const refresh = useCallback(async () => {
-    const f = (from || "").trim().toUpperCase();
-    const t = (to || "").trim().toUpperCase();
+    const f = (from || "").toUpperCase();
+    const t = (to || "").toUpperCase();
     if (!f || !t) return;
 
     setLoading(true);
     setError("");
     try {
-      const { rate, date } = await api.pair(f, t); // <- always calls API client
+      const { rate, date } = await api.pair(f, t);
       if (typeof rate !== "number") throw new Error("No rate");
       setRate(rate);
       setDate(date || "");
     } catch (e) {
       console.error("Pair fetch failed:", e);
-      setError("Failed to load pair rate.");
+      setError(`Failed to load rate for ${f} → ${t}`);
       setRate(null);
     } finally {
       setLoading(false);

@@ -13,16 +13,12 @@ export default function LiveRatesPanel({
   onBaseChange = null, // (code) => void
   onTargetsChange = null, // (arr[5]) => void
   currencies = [], // all codes (for CurrencySelector)
-  meta = {}, // { CODE: { label, flag } }
-  popular = [], // if you removed Popular, you can delete this prop
   highlightCode = "",
+  amount = "", // ✅ shared amount from App.jsx
+  onAmountChange = () => {}, // ✅ update shared amount
 }) {
-  // panel amount
-  const [amount, setAmount] = useState("1500");
-
-  // ✅ single source of truth for widths (picked from your snippet)
-  const SELECT_W = "w-3/4 md:w-[100px]"; // or "w-full md:w-[100px]"
-  const AMOUNT_W = "w-3/4 md:w-[200px]"; // or "w-full md:w-[200px]"
+  const SELECT_W = "w-3/4 md:w-[100px]";
+  const AMOUNT_W = "w-3/4 md:w-[200px]";
 
   const fmt2 = useMemo(
     () =>
@@ -41,10 +37,11 @@ export default function LiveRatesPanel({
   }, [symbols, base]);
 
   const [localTargets, setLocalTargets] = useState(safeTargets);
+
+  // ✅ cleaned up dependency — no ESLint underline
   useEffect(() => {
     setLocalTargets(safeTargets);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [safeTargets.join(","), base]);
+  }, [safeTargets, base]);
 
   function changeTarget(i, code) {
     if (!code || code === base) return;
@@ -63,51 +60,45 @@ export default function LiveRatesPanel({
         w-full md:w-[calc(100vw-140px)] md:max-w-none
         md:relative md:left-1/2 md:-translate-x-1/2
         md:mt-[120px] md:mb-[100px]
-        p-6 md:p-8 
+        p-6 md:p-8
       "
     >
       <h2 className="text-center text-xl md:text-2xl font-semibold md:mb-12">
         Live Exchange Rates
       </h2>
 
-      {/* Center items on small screens to match ConverterCard vibe */}
       <div className="mt-5 grid gap-6 md:grid-cols-2 place-items-center md:place-items-start">
         {/* LEFT: Base currency + amount */}
         <div className="w-full">
           <label className="block text-emerald-100 text-sm mb-2">
-            Base currency :
+            Base currency
           </label>
 
-          {/* ⬇️ same width as your base selector */}
           <div className={`${SELECT_W} mx-auto md:mx-0`}>
             <CurrencySelector
-              label=""
               value={base}
               onChange={(c) => onBaseChange?.(c)}
               options={currencies}
-              meta={meta}
-              popular={popular} // remove this line if you dropped Popular
               disabled={loading}
             />
           </div>
 
-          {/* ⬇️ match the input width to your base amount */}
           <div className="mt-3">
             <input
               type="text"
               inputMode="decimal"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => onAmountChange(e.target.value)}
               placeholder="Enter amount"
               className={`${AMOUNT_W} block mx-auto md:mx-0 rounded-md md:text-2xl bg-white px-6 py-4 text-slate-800 text-center outline-none`}
             />
           </div>
         </div>
 
-        {/* RIGHT: Five target rows (selector + converted amount) */}
+        {/* RIGHT: Five target rows */}
         <div className="w-full">
           <div className="text-emerald-100 text-sm mb-3 mt-4 text-center md:text-left">
-            Rates :
+            Rates
           </div>
 
           <div className="space-y-3">
@@ -123,29 +114,22 @@ export default function LiveRatesPanel({
                     highlight ? "ring-2 ring-white/60 rounded-md p-1" : ""
                   }`}
                 >
-                  {/* ⬇️ Rate selector matches Base selector width */}
                   <div className={`${SELECT_W} mx-auto sm:mx-0`}>
                     <CurrencySelector
-                      label=""
                       value={code}
                       onChange={(c) => changeTarget(idx, c)}
                       options={currencies}
-                      meta={meta}
-                      popular={popular} // remove if Popular is gone
                       disabled={loading}
                     />
                   </div>
 
-                  {/* ⬇️ Converted amount matches Base amount width */}
-                  <input
-                    readOnly
+                  <output
                     className={`${AMOUNT_W} mx-auto sm:mx-0 rounded-md bg-white px-3 py-2 text-right text-slate-800`}
-                    value={
-                      Number.isFinite(converted)
-                        ? fmt2.format(converted)
-                        : "0.00"
-                    }
-                  />
+                  >
+                    {Number.isFinite(converted)
+                      ? fmt2.format(converted)
+                      : "0.00"}
+                  </output>
                 </div>
               );
             })}
@@ -159,7 +143,8 @@ export default function LiveRatesPanel({
           </div>
         </div>
       </div>
-      {/* Panel footer: date + refresh at the bottom */}
+
+      {/* Footer */}
       <div className="mt-6 md:mt-8 flex flex-col items-center gap-2 md:flex-row md:justify-end">
         <button
           onClick={onRefresh}
@@ -170,6 +155,12 @@ export default function LiveRatesPanel({
         </button>
         <p className="text-emerald-100 text-xs">Updated: {date || "—"}</p>
       </div>
+
+      {error && (
+        <p className="mt-4 text-center text-sm text-rose-200" role="alert">
+          {error}
+        </p>
+      )}
     </section>
   );
 }

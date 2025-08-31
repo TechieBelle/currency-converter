@@ -20,10 +20,11 @@ export default function ConverterCard({
 }) {
   const amountNumber = Number(amount) || 0;
   const isValidAmount = Number.isFinite(amountNumber) && amountNumber > 0;
+  const isValidRate = typeof rate === "number" && !isNaN(rate);
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-xl md:translate-y-[96px] md:min-h-[480px]">
-      {/* Top row: selectors */}
+      {/* Selectors */}
       <div className="grid grid-cols-2 gap-3">
         <CurrencySelector
           label="From"
@@ -42,12 +43,13 @@ export default function ConverterCard({
       </div>
 
       {/* Swap */}
-      <div className="mt-5 flex items-center justify-center ">
+      <div className="mt-5 flex items-center justify-center">
         <button
           onClick={onSwap}
+          aria-label="Swap currencies"
           className="rounded-full border border-slate-300 text-slate-600 px-5 py-2 text-sm
-          hover:bg-blue-700 hover:text-white focus:outline-none transition-transform duration-200 ease-out hover:scale-110 cursor-pointer md:mb-3"
-          title="Swap currencies"
+                     hover:bg-blue-700 hover:text-white focus:outline-none
+                     transition-transform duration-200 ease-out hover:scale-110 cursor-pointer md:mb-3"
           disabled={loading}
         >
           <ArrowsRightLeftIcon className="h-5 w-5" aria-hidden />
@@ -66,23 +68,28 @@ export default function ConverterCard({
         <button
           onClick={onConvert}
           disabled={loading || !isValidAmount}
-          className="rounded-lg bg-blue-700 px-4 py-2 font-medium text-white transition-transform duration-200 ease-out hover:scale-105 active:scale-95 focus:outline-none cursor-pointer md:mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-lg bg-blue-700 px-4 py-2 font-medium text-white
+                     transition-transform duration-200 ease-out hover:scale-105
+                     active:scale-95 focus:outline-none cursor-pointer md:mt-8
+                     disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "Loading…" : "Convert"}
+          {loading ? "Converting…" : "Convert"}
         </button>
 
-        {/* 🔹 Only show result when amount is valid */}
-        {isValidAmount && (
-          <ConversionResult
-            amount={amountNumber}
-            from={from}
-            to={to}
-            rate={rate}
-            date={date}
-            error={error}
-          />
-        )}
+        {/* Results */}
+        <div aria-live="polite">
+          {isValidAmount && isValidRate && !error && (
+            <ConversionResult
+              amount={amountNumber}
+              from={from}
+              to={to}
+              rate={rate}
+              date={date}
+            />
+          )}
+        </div>
 
+        {/* Error */}
         {error && (
           <p className="text-sm text-red-600" role="alert">
             {error}

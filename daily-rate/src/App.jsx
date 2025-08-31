@@ -15,7 +15,7 @@ import {
 } from "./utils/locale";
 
 export default function App() {
-  // Full currency list + metadata (labels/flags) for dropdowns
+  // All available currencies
   const {
     codes: currencies = [],
     meta = {},
@@ -26,12 +26,12 @@ export default function App() {
   const region = detectRegion();
   const userCurrency = defaultCurrencyForRegion(region) || "NGN";
 
-  // Converter state (single source of truth)
+  // Converter state 
   const [from, setFrom] = useState(userCurrency);
   const [to, setTo] = useState("EUR");
-  const [amount, setAmount] = useState("");   // 🔹 empty default amount
+  const [amount, setAmount] = useState();   
 
-  // Live pair rate (1 {from} -> {to})
+  // Single pair rate (for the converter)
   const {
     rate: pairRate,
     date: pairDate,
@@ -40,7 +40,7 @@ export default function App() {
     refresh: refreshPair,
   } = usePairRate(from, to);
 
-  // Five editable targets for the live panel
+  // Panel target currencies (5 symbols)
   const [panelTargets, setPanelTargets] = useState(() =>
     topSymbolsForRegion(region, from)
   );
@@ -63,11 +63,10 @@ export default function App() {
   }
 
   function handleConvert() {
-    // Pair hook already auto-fetches on from/to change; this is a manual refresh.
-    refreshPair();
+       refreshPair();
   }
 
-  // 🔹 Centralized error message handling
+  
   const errorMsg =
     symbolsError
       ? "Failed to load currencies."
@@ -131,7 +130,7 @@ export default function App() {
       </main>
 
       <footer className="bg-blue-900 px-6 py-6 text-center text-blue-100 md:px-12">
-        &copy; Folashade {new Date().getFullYear()}
+        &copy; Folashade Bello {new Date().getFullYear()}
       </footer>
     </div>
   );
